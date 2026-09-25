@@ -1,6 +1,15 @@
 # web-ssh
 
-单端口 Web SSH 服务器：浏览器访问 `域名` 或 `域名:端口`，填上目标主机、用户名、密码/私钥，就能在网页里拉起一个真实 SSH 终端。
+单端口 Web SSH 服务器：浏览器访问 `域名` 或 `域名:端口`，填上目标主机、用户名、密码/私钥，就能在网页里拉起一个真实 SSH 终端。附带 Headless API（`/api/exec`），AI 也能直接调用执行命令。
+
+## ⚡ 一键部署（Linux VM）
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/DeveloperYe/web-ssh/main/deploy/install.sh)
+```
+
+自动完成：装 Node>=18 + openssh-server → 拉代码到 `/opt/web-ssh` → 装依赖 → 写 `.env` → systemd 开机自启。首次结束时会打印自动生成的 API 令牌。
+（不放心 `curl | bash` 的话，可先下载脚本审阅再本地执行：`curl -fsSL -o install.sh <上面的URL> && bash install.sh`。）
 
 > 适合服务商**限制端口**、只能通过「端口-域名」（域名/CNAME）方式访问的场景 —— 因为整套服务只需要**一个 HTTP 端口**，套上域名即可，不需要额外开放 22 号随机端口。
 
