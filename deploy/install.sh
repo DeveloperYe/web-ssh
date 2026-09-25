@@ -36,9 +36,15 @@ if ! command -v node >/dev/null 2>&1 || [[ "$(node -v 2>/dev/null | sed 's/^v//'
   $SUDO apt-get install -y nodejs
 fi
 $SUDO apt-get install -y openssh-server >/dev/null 2>&1 || true
-$SUDO systemctl enable --now ssh >/dev/null 2>&1 || \
-  $SUDO systemctl enable --now sshd >/dev/null 2>&1 || \
-  say "提示：openssh-server 已装，但未能自动启动 ssh 服务，请手动启动"
+if command -v systemctl >/dev/null 2>&1; then
+  $SUDO systemctl enable --now ssh >/dev/null 2>&1 || \
+    $SUDO systemctl enable --now sshd >/dev/null 2>&1
+fi
+if ! pgrep -x sshd >/dev/null 2>&1; then
+  $SUDO service ssh start >/dev/null 2>&1 || \
+    $SUDO /usr/sbin/sshd >/dev/null 2>&1 || \
+    say "提示：openssh-server 已装，但 ssh 未能自动启动（本环境无 systemd）。如要 AI 操作本机，请手动启动：sudo service ssh start 或 sudo /usr/sbin/sshd"
+fi
 
 # ---------- 2. 拉取源码 ----------
 if [[ -f "$DEST/server.js" ]]; then
@@ -95,21 +101,35 @@ else
   say "$DEST/.env 已存在，保留原配置"
 fi
 
-# ---------- 5. 安装并启动 systemd 服务 ----------
-say "配置 systemd 服务 web-ssh..."
-SVC="$DEST/deploy/web-ssh.service"
-if [[ -f "$SVC" ]]; then
-  run_user="${SSH_DEFAULT_USER:-$(id -un)}"
-  if [[ "$run_user" == "root" ]]; then
-    sed -i '/^User=/d' "$SVC"
+# ---------- 5. 启动 web-ssh（自动检测 init：systemd / 无 systemd 回退） ----------
+run_user="${SSH_DEFAULT_USER:-$(id -un)}"
+run_as() { # 以指定用户执行命令
+  if [[ "$(id -un)" == "$1" ]]; then bash -c "$2"; else $SUDO runuser -u "$1" -- bash -c "$2"; fi
+}
+
+if command -v systemctl >/dev/null 2>&1 && [[ "$(ps -p 1 -o comm= 2>/dev/null)" == *systemd* ]]; then
+  say "检测到 systemd，注册 systemd 服务 web-ssh..."
+  SVC="$DEST/deploy/web-ssh.service"
+  if [[ -f "$SVC" ]]; then
+    if [[ "$run_user" == "root" ]]; then
+      sed -i '/^User=/d' "$SVC"
+    else
+      sed -i "s/^User=.*/User=$run_user/" "$SVC"
+    fi
+    $SUDO cp "$SVC" /etc/systemd/system/web-ssh.service
+    $SUDO systemctl daemon-reload
+    $SUDO systemctl enable --now web-ssh
   else
-    sed -i "s/^User=.*/User=$run_user/" "$SVC"
+    say "警告：未找到 manifest 文件，跳过 systemd 配置"
   fi
-  $SUDO cp "$SVC" /etc/systemd/system/web-ssh.service
-  $SUDO systemctl daemon-reload
-  $SUDO systemctl enable --now web-ssh
 else
-  say "警告：未找到 manifest 文件，跳过 systemd 配置。请手动启动：cd $DEST && node server.js"
+  say "未检测到 systemd（PID1 非 systemd，可能是容器），改用后台 (nohup) 启动 web-ssh..."
+  cd "$DEST"
+  run_as "$run_user" "nohup node server.js >>/tmp/web-ssh.log 2>&1 &"
+  # 尽量补个开机自启（容器里请改用前台或 entrypoint 更合适）
+  ( crontab -l 2>/dev/null; echo "@reboot cd $DEST && (nohup node server.js >>/tmp/web-ssh.log 2>&1 &)"; ) | crontab - 2>/dev/null || \
+    say "（未配置开机自启：无 crontab，容器环境请用前台运行/entrypoint）"
+  say "日志：tail -f /tmp/web-ssh.log"
 fi
 
 # ---------- 6. 收尾 ----------
