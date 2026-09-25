@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>web-ssh · 网页终端</title>
+  <link rel="stylesheet" href="/vendor/xterm.css" />
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #161b27;
+      --border: #2a3247;
+      --text: #d7dce8;
+      --muted: #8b93a7;
+      --accent: #4f8cff;
+      --danger: #e5484d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+      background: var(--bg); color: var(--text); height: 100vh; display: flex;
+      flex-direction: column; align-items: center; justify-content: center; padding: 16px;
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 28px; width: 100%; max-width: 420px;
+    }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .sub { color: var(--muted); font-size: 13px; margin: 0 0 22px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input, textarea, select {
+      width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 14px; outline: none;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    textarea { font-family: "Consolas", monospace; resize: vertical; min-height: 72px; }
+    .row { display: flex; gap: 10px; }
+    .row .field { flex: 1; }
+    button {
+      width: 100%; padding: 11px; border: none; border-radius: 8px; cursor: pointer;
+      background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; margin-top: 6px;
+    }
+    button:hover { opacity: .92; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .mode { display: flex; gap: 6px; margin-bottom: 18px; }
+    .mode button {
+      flex: 1; background: transparent; color: var(--muted); border: 1px solid var(--border);
+      font-size: 13px; font-weight: 400; padding: 7px; margin: 0;
+    }
+    .mode button.active { color: var(--accent); border-color: var(--accent); }
+    .error { color: var(--danger); font-size: 13px; margin-top: 12px; min-height: 18px; }
+    #terminal-wrap { display: none; width: 100%; max-width: 1200px; height: 100%; flex-direction: column; }
+    #terminal-bar {
+      display: flex; align-items: center; justify-content: space-between; padding: 8px 14px;
+      background: var(--panel); border: 1px solid var(--border); border-bottom: none;
+      border-radius: 10px 10px 0 0; font-size: 13px; color: var(--muted);
+    }
+    #terminal-bar .title { color: var(--text); font-weight: 600; }
+    #terminal-bar button {
+      width: auto; padding: 4px 14px; font-size: 12px; margin: 0; font-weight: 400;
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+    }
+    #terminal-bar button:hover { color: #fff; }
+    #terminal {
+      flex: 1; min-height: 0; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 0 0 10px 10px; padding: 8px; overflow: hidden;
+    }
+    .status { font-size: 12px; }
+    .status.ok { color: #3fb950; }
+    .status.err { color: var(--danger); }
+    #loading { display: none; text-align:center; color: var(--muted); font-size: 13px; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <div class="card" id="login-card">
+    <h1>web-ssh</h1>
+    <p class="sub">在浏览器里连 SSH，单端口即用</p>
+
+    <div class="mode">
+      <button type="button" class="active" data-mode="password">密码</button>
+      <button type="button" data-mode="key">私钥</button>
+    </div>
+
+    <div class="field">
+      <label>目标主机</label>
+      <input id="host" placeholder="localhost / 10.0.0.8 / 你的域名" value="localhost" />
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>端口</label>
+        <input id="port" type="number" value="22" />
+      </div>
+      <div class="field">
+        <label>用户名</label>
+        <input id="username" placeholder="root" value="root" />
+      </div>
+    </div>
+    <div class="field" id="pw-field">
+      <label>密码</label>
+      <input id="password" type="password" placeholder="••••••••" />
+    </div>
+    <div class="field" id="key-field" style="display:none">
+      <label>私钥（RSA / ECDSA / Ed25519）</label>
+      <textarea id="privateKey" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"></textarea>
+    </div>
+
+    <button id="connect">连接 SSH</button>
+    <div class="error" id="error"></div>
+    <div id="loading">正在连接，请稍候……</div>
+  </div>
+
+  <div id="terminal-wrap">
+    <div id="terminal-bar">
+      <span class="title" id="term-title">SSH 会话</span>
+      <span>
+        <button id="reconnect">重连</button>
+        <button id="disconnect">断开</button>
+      </span>
+    </div>
+    <div id="terminal"></div>
+  </div>
+
+  <script src="/vendor/xterm.js"></script>
+  <script src="/vendor/addon-fit.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

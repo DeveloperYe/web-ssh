@@ -1,0 +1,36 @@
+# web-ssh systemd 服务单元（VM 直接 Node 部署用）
+#
+# 用法：
+#   1. 把 web-ssh 代码放到 /opt/web-ssh（或你喜欢的路径）
+#      sudo cp -r web-ssh /opt/web-ssh && cd /opt/web-ssh && npm install --omit=dev
+#   2. 复制并填写配置：sudo cp .env.example /opt/web-ssh/.env  （务必改 SSH_API_TOKEN）
+#   3. 把本文件放进系统：sudo cp web-ssh.service /etc/systemd/system/
+#   4. 若以 root 运行则注释 User= 一行；否则改成实际运行用户（如 deploy）
+#   5. 启动并设开机自启：
+#      sudo systemctl daemon-reload
+#      sudo systemctl enable --now web-ssh
+#      systemctl status web-ssh
+#
+# 说明：
+#   - EnvironmentFile 让 systemd 把 /opt/web-ssh/.env 里的变量注入进程（Node 直接可读）
+#   - Restart=always 崩溃自动拉起，WantedBy 开机自启
+
+[Unit]
+Description=web-ssh - single-port web SSH server (web terminal + /api/exec)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Root 下不需要 User；非 root 部署时改成实际用户
+User=deploy
+WorkingDirectory=/opt/web-ssh
+EnvironmentFile=/opt/web-ssh/.env
+ExecStart=/usr/bin/env node server.js
+Restart=always
+RestartSec=3
+# 基础资源限制，防单实例拖垮小 VM
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

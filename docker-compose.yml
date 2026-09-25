@@ -1,0 +1,25 @@
+services:
+  web-ssh:
+    build: .
+    container_name: web-ssh
+    restart: unless-stopped
+    ports:
+      # 服务商限制端口的话，把宿主机口改成 80/443 再绑定到域名
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      # HOST: "0.0.0.0"
+      # 网页整站 Basic Auth（建议公网开 HTTPS 时必开）
+      # SSH_WEB_USER: "admin"
+      # SSH_WEB_PASS: "改成强密码"
+      # AI 命令执行 API 的 Bearer Token
+      # 从同目录 .env 读取（见 .env.example）；未设置时 /api/exec 处于关闭状态（安全默认）
+      # 务必改成你自己的随机强令牌，别用占位值
+      SSH_API_TOKEN: "${SSH_API_TOKEN:-}"
+      # 服务端默认 SSH 凭据（供 AI 调用 /api/exec 使用）
+      # SSH_DEFAULT_HOST: "10.0.0.8"
+      # SSH_DEFAULT_PORT: "22"
+      # SSH_DEFAULT_USER: "root"
+      # SSH_DEFAULT_PASSWORD: "xxx"
+      # SSH_DEFAULT_PRIVATE_KEY_PATH: "/app/id_rsa"
+      # SSH_DEFAULT_PRIVATE_KEY: "-----BEGIN OPENSSH PRIVATE KEY-----..."
