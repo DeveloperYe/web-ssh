@@ -84,6 +84,7 @@ SSH_DEFAULT_USER=$local_run_user
 SSH_DEFAULT_PASSWORD=${SSH_DEFAULT_PASSWORD}
 EOF
   else
+    if [[ "$local_run_user" == "root" ]]; then key_path="/root/.ssh/id_ed25519"; else key_path="/home/$local_run_user/.ssh/id_ed25519"; fi
     cat > "$envtmp" <<EOF
 PORT=$BIND_PORT
 
@@ -92,7 +93,7 @@ SSH_API_TOKEN=$token
 SSH_DEFAULT_HOST=127.0.0.1
 SSH_DEFAULT_PORT=22
 SSH_DEFAULT_USER=$local_run_user
-SSH_DEFAULT_PRIVATE_KEY_PATH=/home/$local_run_user/.ssh/id_ed25519
+SSH_DEFAULT_PRIVATE_KEY_PATH=$key_path
 EOF
   fi
   $SUDO cp "$envtmp" "$DEST/.env"
