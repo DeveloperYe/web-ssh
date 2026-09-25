@@ -14,6 +14,32 @@
 - **URL 参数预填**：`?host=...&port=...&user=...&mode=key` 方便分享入口
 - **Headless API**：`/api/exec` 让 AI / 脚本直接发 HTTP 执行命令拿文本结果，无需浏览器
 
+## 一行命令部署（Linux VM）
+
+在目标机上执行一条命令，自动完成：装 Node>=18 + openssh-server、拉代码到 `/opt/web-ssh`、装依赖、写 `.env`、systemd 开机自启：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/DeveloperYe/web-ssh/main/deploy/install.sh)
+```
+
+可用环境变量预设（不传则自动处理）：
+
+| 变量 | 作用 |
+| --- | --- |
+| `SSH_API_TOKEN` | 传则启用 `/api/exec`；否则自动生成随机令牌并在结尾打印 |
+| `SSH_DEFAULT_USER` | 本机 SSH 用户名（默认脚本运行用户） |
+| `SSH_DEFAULT_PASSWORD` | 本机 SSH 密码（不传则默认走本地 `~/.ssh/id_ed25519` 私钥） |
+| `WEB_SSH_BIND_PORT` | 监听端口（默认 `3000`） |
+
+例：
+
+```bash
+SSH_API_TOKEN=想自己定的令牌 SSH_DEFAULT_USER=ubuntu \
+  bash <(curl -fsSL https://raw.githubusercontent.com/DeveloperYe/web-ssh/main/deploy/install.sh)
+```
+
+> 也支持预先把本仓库 `deploy/install.sh` 拷到 VM 后 `bash install.sh` 本地执行。
+
 ## 快速开始
 
 ### 方式一：直接 Node 运行
@@ -189,7 +215,8 @@ web-ssh/
 ├── lib/
 │   └── ssh.js           # 统一 SSH 模块：默认凭据 + 连接参数合成 + 单条命令执行
 ├── deploy/
-│   └── web-ssh.service  # systemd 单元（VM 直接 Node 托管：开机自启 + 崩溃自拉）
+│   ├── web-ssh.service   # systemd 单元（VM 直接 Node 托管：开机自启 + 崩溃自拉）
+│   └── install.sh        # 一行命令安装脚本（curl | bash）
 ├── public/              # 前端
 │   ├── index.html       # 登录表单 + 终端布局
 │   ├── app.js           # xterm 逻辑 + WebSocket
